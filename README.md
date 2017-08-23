@@ -12,5 +12,7 @@ make
 ```
 
 [1] www.vldb.org/pvldb/vol8/p1816-teller.pdf
+
 [2] https://github.com/facebookincubator/beringei
+
 [3] https://github.com/google/benchmark
