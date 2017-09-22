@@ -10,6 +10,7 @@
 #pragma once
 
 #include <gflags/gflags.h>
+#include <iostream>
 
 #include "BitUtil.h"
 
@@ -25,16 +26,9 @@ template <typename T>
 using is_vector = std::
     is_same<T, std::vector<typename T::value_type, typename T::allocator_type>>;
 
-template <typename T>
-inline typename std::enable_if<is_vector<T>::value>::type
-addValueToOutput(T& out, int64_t unixTime, double value) {
-  out.emplace_back();
-  out.back().unixTime = unixTime;
-  out.back().value = value;
-}
 
 template <typename T>
-inline typename std::enable_if<!is_vector<T>::value>::type
+inline typename std::enable_if<is_vector<T>::value>::type
 addValueToOutput(T& out, int64_t unixTime, double value) {
   out[unixTime] = value;
 }
@@ -71,8 +65,8 @@ int TimeSeriesStream::readValues(
     uint64_t bitPos = 0;
     int64_t previousTimestampDelta = kDefaultDelta;
 
-    int64_t firstTimestamp =
-        BitUtil::readValueFromBitString(data, bitPos, kBitsForFirstTimestamp);
+    int64_t firstTimestamp = 0;
+    //     BitUtil::readValueFromBitString(data, bitPos, kBitsForFirstTimestamp);
     double firstValue = readNextValue(
         data,
         bitPos,
@@ -82,18 +76,18 @@ int TimeSeriesStream::readValues(
     int64_t previousTimestamp = firstTimestamp;
 
     // If the first data point is after the query range, return nothing.
-    if (firstTimestamp > end) {
-      return 0;
-    }
+    // if (firstTimestamp > end) {
+    //   return 0;
+    // }
 
-    if (firstTimestamp >= begin) {
-      addValueToOutput(out, firstTimestamp, firstValue);
+    // if (firstTimestamp >= begin) {
+      addValueToOutput(out, count, firstValue);
       count++;
-    }
+    // }
 
     for (int i = 1; i < n; i++) {
-      int64_t unixTime = readNextTimestamp(
-          data, bitPos, previousTimestamp, previousTimestampDelta);
+      // int64_t unixTime = readNextTimestamp(
+      //     data, bitPos, previousTimestamp, previousTimestampDelta);
       double value = readNextValue(
           data,
           bitPos,
@@ -101,20 +95,20 @@ int TimeSeriesStream::readValues(
           previousLeadingZeros,
           previousTrailingZeros);
 
-      if (unixTime > end) {
-        break;
-      }
+      // if (unixTime > end) {
+      //   break;
+      // }
 
-      if (unixTime >= begin) {
-        if (unixTime < FLAGS_gorilla_blacklisted_time_min ||
-            unixTime > FLAGS_gorilla_blacklisted_time_max) {
-          addValueToOutput(out, unixTime, value);
+      // if (unixTime >= begin) {
+        // if (unixTime < FLAGS_gorilla_blacklisted_time_min ||
+        //     unixTime > FLAGS_gorilla_blacklisted_time_max) {
+          addValueToOutput(out, count, value);
           count++;
-        }
-      }
+        // }
+      // }
     }
   } catch (const std::runtime_error& e) {
-    LOG(ERROR) << "Error decoding data from Gorilla: " << e.what();
+    std::cout << "Error decoding data from Gorilla: " << e.what();
   }
   return count;
 }

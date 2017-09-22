@@ -51,7 +51,9 @@ void TimeSeriesStream::reset() {
   // Shrink to fit before clearing to possibly free some unused
   // memory. (It will only free memory if there's more than 50% extra
   // allocated.)
-  data_.shrink_to_fit();
+
+  //do not shrink in perf test
+  // data_.shrink_to_fit();
 
   // This won't actually release the memory.
   data_.clear();
@@ -120,7 +122,6 @@ bool TimeSeriesStream::appendTimestamp(
 
   // Skip the minTimestampDelta check for the first timestamp.
   if (delta < minTimestampDelta && prevTimestamp_ != 0) {
-    std::cout << "mrdka" <<  delta << " " << minTimestampDelta << " " << prevTimestamp_ << " " << timestamp << std::endl;
     return false;
   }
 
@@ -131,7 +132,6 @@ bool TimeSeriesStream::appendTimestamp(
     prevTimestamp_ = timestamp;
     prevTimestampDelta_ = kDefaultDelta;
 
-    std::cout << "set prev timestamp: " << timestamp << std::endl;
     return true;
   }
 
