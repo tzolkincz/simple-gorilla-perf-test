@@ -55,7 +55,7 @@ void testStockDataDecompression(benchmark::State& state) {
 BENCHMARK(testStockDataDecompression)->Arg(1);
 
 void testStockDataCompression(benchmark::State& state) {
-	std::ifstream infile("ibm.data");
+	std::ifstream infile("data/ibm.data");
 
 	std::vector<long> data;
 
@@ -77,11 +77,95 @@ void testStockDataCompression(benchmark::State& state) {
 		a.reset();  // just null positions not clear backend data (for perf test purposes)
 	}
 
-	// std::cout << "ratio1: " << (double)(data.size() * 8) / compressedLength << std::endl;
+	std::cout << "ratio1: " << (double)(data.size() * 8) / compressedLength << std::endl;
 
 	state.SetBytesProcessed(state.iterations() * sizeof(long) * data.size());
 }
 BENCHMARK(testStockDataCompression)->Arg(1);
+
+#define MAKE_COMPRESSION_TEST(NAME, isDouble, file)                                         \
+	void genCompressionTest##NAME(benchmark::State& state) {                                 \
+		std::ifstream infile(file);                                                          \
+		std::vector<double> data;                                                            \
+		std::string line;                                                                    \
+		while (std::getline(infile, line)) {                                                 \
+			double val;                                                                      \
+			if (isDouble) {                                                                  \
+				val = std::stod(line);                                                       \
+			} else {                                                                         \
+				long v = std::stol(line);                                                    \
+				val = reinterpret_cast<double&>(v);                                          \
+			}                                                                                \
+			data.push_back(val);                                                             \
+		}                                                                                    \
+                                                                                             \
+		facebook::gorilla::TimeSeriesStream a;                                               \
+                                                                                             \
+		int compressedLength = 0;                                                            \
+		while (state.KeepRunning()) {                                                        \
+			for (size_t i = 0; i < data.size(); i++) {                                       \
+				a.append(1000 + i, data[i], 0);                                              \
+			}                                                                                \
+			compressedLength = a.size();                                                     \
+			a.reset();                                                                       \
+		}                                                                                    \
+                                                                                             \
+		std::cout << "ratio: " << (double)(data.size() * 8) / compressedLength << std::endl; \
+                                                                                             \
+		state.SetBytesProcessed(state.iterations() * sizeof(double) * data.size());          \
+	}
+
+MAKE_COMPRESSION_TEST(A, true, "data/ibm.data")
+BENCHMARK(genCompressionTestA);
+
+MAKE_COMPRESSION_TEST(C, true, "data/usages.data")
+BENCHMARK(genCompressionTestC);
+
+MAKE_COMPRESSION_TEST(D, false, "data/writes.data")
+BENCHMARK(genCompressionTestD);
+
+#define MAKE_DECOMPRESSION_TEST(NAME, isDouble, file)                             \
+	void genDecompressionTest##NAME(benchmark::State& state) {                    \
+		std::ifstream infile(file);                                               \
+		std::vector<double> data;                                                 \
+		std::string line;                                                         \
+		while (std::getline(infile, line)) {                                      \
+			double val;                                                           \
+			if (isDouble) {                                                       \
+				val = std::stod(line);                                            \
+			} else {                                                              \
+				long v = std::stol(line);                                         \
+				val = reinterpret_cast<double&>(v);                               \
+			}                                                                     \
+			data.push_back(val);                                                  \
+		}                                                                         \
+                                                                                  \
+		facebook::gorilla::TimeSeriesStream a;                                    \
+                                                                                  \
+		for (size_t i = 0; i < data.size(); i++) {                                \
+			a.append(1000 + i, data[i], 0);                                       \
+		}                                                                         \
+                                                                                  \
+		std::vector<double> out(data.size());                                     \
+		folly::StringPiece compressed(a.getDataPtr(), a.size());                  \
+                                                                                  \
+		while (state.KeepRunning()) {                                             \
+			int n = a.readValues(out, compressed, data.size(), 0);                \
+		}                                                                         \
+                                                                                  \
+		state.SetBytesProcessed(state.iterations() * sizeof(long) * data.size()); \
+	}
+
+  MAKE_DECOMPRESSION_TEST(A, true, "data/ibm.data")
+  BENCHMARK(genDecompressionTestA);
+  
+  MAKE_DECOMPRESSION_TEST(C, true, "data/usages.data")
+  BENCHMARK(genDecompressionTestC);
+  
+  MAKE_DECOMPRESSION_TEST(D, false, "data/writes.data")
+  BENCHMARK(genDecompressionTestD);
+  
+
 
 static void BM_scalarCompress(benchmark::State& state) {
 	facebook::gorilla::TimeSeriesStream a;
