@@ -83,7 +83,7 @@ void testStockDataCompression(benchmark::State& state) {
 }
 BENCHMARK(testStockDataCompression)->Arg(1);
 
-#define MAKE_COMPRESSION_TEST(NAME, isDouble, file)                                         \
+#define MAKE_COMPRESSION_TEST(NAME, isDouble, file, scale)                                   \
 	void genCompressionTest##NAME(benchmark::State& state) {                                 \
 		std::ifstream infile(file);                                                          \
 		std::vector<double> data;                                                            \
@@ -92,6 +92,10 @@ BENCHMARK(testStockDataCompression)->Arg(1);
 			double val;                                                                      \
 			if (isDouble) {                                                                  \
 				val = std::stod(line);                                                       \
+				if (scale) {                                                                 \
+					long v1 = scale * val;                                                   \
+					val = reinterpret_cast<double&>(v1);                                     \
+				}                                                                            \
 			} else {                                                                         \
 				long v = std::stol(line);                                                    \
 				val = reinterpret_cast<double&>(v);                                          \
@@ -115,16 +119,19 @@ BENCHMARK(testStockDataCompression)->Arg(1);
 		state.SetBytesProcessed(state.iterations() * sizeof(double) * data.size());          \
 	}
 
-MAKE_COMPRESSION_TEST(A, true, "data/ibm.data")
+MAKE_COMPRESSION_TEST(A, true, "data/ibm.data", 0)
 BENCHMARK(genCompressionTestA);
 
-MAKE_COMPRESSION_TEST(C, true, "data/usages.data")
+MAKE_COMPRESSION_TEST(B, true, "data/ibm.data", 10000)
+BENCHMARK(genCompressionTestB);
+
+MAKE_COMPRESSION_TEST(C, true, "data/usages.data", 0)
 BENCHMARK(genCompressionTestC);
 
-MAKE_COMPRESSION_TEST(D, false, "data/writes.data")
+MAKE_COMPRESSION_TEST(D, false, "data/writes.data", 0)
 BENCHMARK(genCompressionTestD);
 
-#define MAKE_DECOMPRESSION_TEST(NAME, isDouble, file)                             \
+#define MAKE_DECOMPRESSION_TEST(NAME, isDouble, file, scale)                      \
 	void genDecompressionTest##NAME(benchmark::State& state) {                    \
 		std::ifstream infile(file);                                               \
 		std::vector<double> data;                                                 \
@@ -133,6 +140,10 @@ BENCHMARK(genCompressionTestD);
 			double val;                                                           \
 			if (isDouble) {                                                       \
 				val = std::stod(line);                                            \
+				if (scale) {                                                      \
+					long v1 = scale * val;                                        \
+					val = reinterpret_cast<double&>(v1);                          \
+				}                                                                 \
 			} else {                                                              \
 				long v = std::stol(line);                                         \
 				val = reinterpret_cast<double&>(v);                               \
@@ -156,16 +167,17 @@ BENCHMARK(genCompressionTestD);
 		state.SetBytesProcessed(state.iterations() * sizeof(long) * data.size()); \
 	}
 
-  MAKE_DECOMPRESSION_TEST(A, true, "data/ibm.data")
-  BENCHMARK(genDecompressionTestA);
-  
-  MAKE_DECOMPRESSION_TEST(C, true, "data/usages.data")
-  BENCHMARK(genDecompressionTestC);
-  
-  MAKE_DECOMPRESSION_TEST(D, false, "data/writes.data")
-  BENCHMARK(genDecompressionTestD);
-  
+MAKE_DECOMPRESSION_TEST(A, true, "data/ibm.data", 0)
+BENCHMARK(genDecompressionTestA);
 
+MAKE_DECOMPRESSION_TEST(B, true, "data/ibm.data", 10000)
+BENCHMARK(genDecompressionTestB);
+
+MAKE_DECOMPRESSION_TEST(C, true, "data/usages.data", 0)
+BENCHMARK(genDecompressionTestC);
+
+MAKE_DECOMPRESSION_TEST(D, false, "data/writes.data", 0)
+BENCHMARK(genDecompressionTestD);
 
 static void BM_scalarCompress(benchmark::State& state) {
 	facebook::gorilla::TimeSeriesStream a;
