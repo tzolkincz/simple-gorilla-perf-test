@@ -11,6 +11,29 @@
 using namespace std;
 #define BENCHMARK_ARGS ->Arg(500000)  //->Arg(1000000)->Arg(200000000)
 
+template <typename T>
+std::vector<T>* generateSequeceRandRepeat(T from, T to, int repeatingProbabilityPercent) {
+	auto data = new std::vector<T>(to - from);
+
+	data->push_back(0);
+	for (int64_t i = 1; i < (to - from); i++) {
+		if (rand() % 100 < repeatingProbabilityPercent) {
+			// make this value same as previous value
+			(*data)[i] = data->at(i - 1);
+		} else {
+			if (typeid(T) == typeid(double)) {
+				// double sequence growths by 0.1
+				(*data)[i] = 0.1 * i;
+			} else {
+				// int64_t sequence growths by 1
+				(*data)[i] = from + i;
+			}
+		}
+	}
+
+	return data;
+}
+
 vector<long>* generateSequece(long from, long to) {
 	auto data = new vector<long>(to - from);
 
@@ -137,6 +160,42 @@ static void BM_testRandomDistributionDecompress(benchmark::State& state) {
 }
 BENCHMARK(BM_testRandomDistributionDecompress) BENCHMARK_ARGS;
 
+#define MAKE_PROB_REPEATING_COMPRESSION_TEST(PERCENT)                                  \
+	static void BM_testRandomRepeatCompressP##PERCENT(benchmark::State& state) {       \
+		auto data = generateSequeceRandRepeat<double>(0, 10000000.0, PERCENT);         \
+		benchmarkCompress(state, *data);                                               \
+		delete data;                                                                   \
+	}                                                                                  \
+	BENCHMARK(BM_testRandomRepeatCompressP##PERCENT) BENCHMARK_ARGS;                   \
+                                                                                       \
+	static void BM_testRandomRepeatDecompressP##PERCENT(benchmark::State& state) {     \
+		auto data = generateSequeceRandRepeat<double>(0, 10000000.0, PERCENT);         \
+		benchmarkDecompress(state, *data);                                             \
+		delete data;                                                                   \
+	}                                                                                  \
+	BENCHMARK(BM_testRandomRepeatDecompressP##PERCENT) BENCHMARK_ARGS;                 \
+                                                                                       \
+	static void BM_testRandomRepeatLongCompressP##PERCENT(benchmark::State& state) {   \
+		auto data = generateSequeceRandRepeat<long>(0, 10000000, PERCENT);             \
+		benchmarkCompress(state, *data);                                               \
+		delete data;                                                                   \
+	}                                                                                  \
+	BENCHMARK(BM_testRandomRepeatLongCompressP##PERCENT) BENCHMARK_ARGS;               \
+                                                                                       \
+	static void BM_testRandomRepeatLongDecompressP##PERCENT(benchmark::State& state) { \
+		auto data = generateSequeceRandRepeat<long>(0, 10000000, PERCENT);             \
+		benchmarkDecompress(state, *data);                                             \
+		delete data;                                                                   \
+	}                                                                                  \
+	BENCHMARK(BM_testRandomRepeatLongDecompressP##PERCENT) BENCHMARK_ARGS;
+
+MAKE_PROB_REPEATING_COMPRESSION_TEST(10);
+MAKE_PROB_REPEATING_COMPRESSION_TEST(25);
+MAKE_PROB_REPEATING_COMPRESSION_TEST(50);
+MAKE_PROB_REPEATING_COMPRESSION_TEST(75);
+MAKE_PROB_REPEATING_COMPRESSION_TEST(90);
+MAKE_PROB_REPEATING_COMPRESSION_TEST(95);
+
 static std::vector<double>* readStockData(const char* path, bool isDouble, int scale) {
 	std::ifstream infile(path);
 
@@ -177,6 +236,9 @@ BENCHMARK(BM_fileDataCompressionB);
 MAKE_COMPRESSION_TEST(C, false, "data/writes.data", 0)
 BENCHMARK(BM_fileDataCompressionC);
 
+MAKE_COMPRESSION_TEST(D, false, "data/redis_memory.data", 0)
+BENCHMARK(BM_fileDataCompressionD);
+
 #define MAKE_DECOMPRESSION_TEST(NAME, isDouble, file, scale)              \
 	static void BM_fileDataDecompression##NAME(benchmark::State& state) { \
 		auto data = readStockData(file, isDouble, scale);                 \
@@ -192,5 +254,8 @@ BENCHMARK(BM_fileDataDecompressionB);
 
 MAKE_DECOMPRESSION_TEST(C, false, "data/writes.data", 0)
 BENCHMARK(BM_fileDataDecompressionC);
+
+MAKE_DECOMPRESSION_TEST(D, false, "data/redis_memory.data", 0)
+BENCHMARK(BM_fileDataDecompressionD);
 
 BENCHMARK_MAIN();
