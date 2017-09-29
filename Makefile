@@ -7,7 +7,10 @@ OBJECTS = *.cpp
 TARGET = perf
 
 all:
-	$(G++) -o $(TARGET) $(OBJECTS) $(G++_FLAGS)  $(LD_FLAGS) && ./perf
+	$(G++) -o $(TARGET) $(OBJECTS) $(G++_FLAGS)  $(LD_FLAGS)
+
+run:
+	./perf
 
 clean:
 	rm -f $(TARGET) $(OBJECTS)

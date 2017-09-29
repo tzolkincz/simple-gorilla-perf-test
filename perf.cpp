@@ -9,7 +9,7 @@
 #include <fstream>
 
 using namespace std;
-#define BENCHMARK_ARGS ->Arg(500000)  //->Arg(1000000)->Arg(200000000)
+#define BENCHMARK_ARGS ->Arg(500000)->Arg(1000000)->Arg(200000000)
 
 template <typename T>
 std::vector<T>* generateSequeceRandRepeat(T from, T to, int repeatingProbabilityPercent) {
@@ -96,7 +96,7 @@ static void benchmarkCompress(benchmark::State& state, std::vector<T>& data) {
 		a.reset();
 	}
 
-	std::cout << "ratio: " << (double)(data.size() * sizeof(long)) / compressedSize << std::endl;
+	// std::cout << "ratio: " << (double)(data.size() * sizeof(long)) / compressedSize << std::endl;
 	state.SetBytesProcessed(int64_t(state.iterations()) * int64_t(data.size() * sizeof(long)));
 }
 
