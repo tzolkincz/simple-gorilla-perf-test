@@ -9,6 +9,7 @@ Same as Beringei [2] plus google benchmark [3].
 Install all dependencies from Beringei and google benchmark. Then simply
 ```
 make
+make run
 ```
 
 [1] www.vldb.org/pvldb/vol8/p1816-teller.pdf
