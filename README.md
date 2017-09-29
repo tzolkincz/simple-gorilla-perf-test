@@ -1,6 +1,6 @@
 # simple-gorilla-perf-test
 
-Minimal working example for mesuring Gorilla [1] compression throughput as implemented in ODS Beringei [2].
+Minimal working example for mesuring Gorilla [1] compression throughput as implemented in ODS Beringei [2]. This code compress only values not timestamps.
 
 ## Dependencies
 Same as Beringei [2] plus google benchmark [3].
